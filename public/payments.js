@@ -1,7 +1,7 @@
 (function () {
   const d = document;
 
-  // --- DOM ---
+  // --- DOM refs ---
   const amountInput = d.getElementById('amount');
   const chips = Array.from(d.querySelectorAll('[data-amount]'));
   const amountError = d.getElementById('amountError');
@@ -13,67 +13,191 @@
   const emailInput = d.getElementById('email');
   const giveBtn = d.getElementById('giveBtn');
   const summary = d.getElementById('summary');
+  const impactLine = d.getElementById('impactLine');
 
+  // Dedication
+  const dedicateToggle = d.getElementById('dedicateToggle');
+  const dedicateWrap = d.getElementById('dedicateWrap');
+  const dedicateName = d.getElementById('dedicateName');
+  const dedicateNote = d.getElementById('dedicateNote');
+
+  // Payment sheet
   const sheet = d.getElementById('paySheet');
   const backdrop = d.getElementById('sheetBackdrop');
   const closeSheetBtn = d.getElementById('closeSheet');
   const confirmPayBtn = d.getElementById('confirmPayBtn');
   const confirmTotalEl = d.getElementById('confirmTotal');
   const payStatus = d.getElementById('payStatus');
+  const shareBtn = d.getElementById('shareBtn');
 
-  const appleBtnWrap = d.getElementById('apple-pay-btn');   // container YOU click
-  const googleBtnWrap = d.getElementById('google-pay-btn'); // container Square renders into
+  // Wallet wrappers
+  const appleBtnWrap = d.getElementById('apple-pay-btn');   // we render a button inside
+  const googleBtnWrap = d.getElementById('google-pay-btn'); // Square will attach here
   const cashBtnWrap = d.getElementById('cash-app-pay-btn');
   const afterpayWrap = d.getElementById('afterpay-btn');
   const achBtn = d.getElementById('ach-btn');
   const walletDivider = d.getElementById('wallet-divider');
 
-  // --- helpers ---
+  // --- Helpers ---
   const FUND_DESCRIPTIONS = {
     'tithe': 'Supports the ongoing ministry and operations.',
     'offering': 'Helps fund weekly services and community care.',
     'missions': 'Advances outreach and missionary support.',
     'building-fund': 'Invests in facilities, equipment, and upgrades.'
   };
-  const parseAmountRaw = v => (v ? parseFloat(String(v).replace(/[^0-9.]/g, '')) : NaN);
-  const parseAmount = () => parseAmountRaw(amountInput.value);
-  const cur = n => n.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
-  const feeFor = amt => Math.max(0, amt * 0.029 + 0.30); // estimate
 
-  function amountValid() { const a = parseAmount(); const ok = Number.isFinite(a) && a >= 1; amountError.classList.toggle('hidden', ok); return ok ? a : NaN; }
-  function buyerTotal() { const b = amountValid(); if (isNaN(b)) return NaN; return coverFees.checked ? b + feeFor(b) : b; }
-  function updateFeePreview() { const a = amountValid(); if (isNaN(a) || !coverFees.checked) { feePreview.textContent='(adds ~$0.00)'; return; } feePreview.textContent = `(adds ~${cur(feeFor(a))})`; }
+  const IMPACT = {
+    offering: { label: 'meals', unitCost: 5 },
+    tithe:    { label: 'care packages', unitCost: 20 },
+    missions: { label: 'outreach kits', unitCost: 15 },
+    'building-fund': { label: 'brick units', unitCost: 50 }
+  };
+
+  const parseAmountRaw = (v) => (v ? parseFloat(String(v).replace(/[^0-9.]/g, '')) : NaN);
+  const parseAmount = () => parseAmountRaw(amountInput.value);
+  const cur = (n) => n.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
+  const feeFor = (amt) => Math.max(0, amt * 0.029 + 0.30); // estimate
+
+  function amountValid() {
+    const a = parseAmount();
+    const ok = Number.isFinite(a) && a >= 1;
+    amountError.classList.toggle('hidden', ok);
+    return ok ? a : NaN;
+  }
+  function buyerTotal() {
+    const base = amountValid();
+    if (isNaN(base)) return NaN;
+    return coverFees.checked ? base + feeFor(base) : base;
+  }
+  function updateFeePreview() {
+    const a = amountValid();
+    if (isNaN(a) || !coverFees.checked) { feePreview.textContent = '(adds ~$0.00)'; return; }
+    feePreview.textContent = `(adds ~${cur(feeFor(a))})`;
+  }
   function updateFundDesc() { fundDesc.textContent = FUND_DESCRIPTIONS[fundSelect.value] || ''; }
-  function updateSummary() { const a = amountValid(); const ftxt = fundSelect.options[fundSelect.selectedIndex]?.text || 'Fund'; if (isNaN(a)) { summary.textContent = ''; return; } const fee = coverFees.checked ? feeFor(a) : 0; summary.textContent = `Giving ${cur(a)} to ${ftxt}${fee ? ` • Fees ~ ${cur(fee)}` : ''} • Total ${cur(a+fee)}`; }
+  function updateSummary() {
+    const a = amountValid();
+    const ftxt = fundSelect.options[fundSelect.selectedIndex]?.text || 'Fund';
+    if (isNaN(a)) { summary.textContent = ''; return; }
+    const fee = coverFees.checked ? feeFor(a) : 0;
+    summary.textContent = `Giving ${cur(a)} to ${ftxt}${fee ? ` • Fees ~ ${cur(fee)}` : ''} • Total ${cur(a+fee)}`;
+  }
+  function updateImpact() {
+    if (!impactLine) return;
+    const amt = parseAmountRaw(amountInput.value);
+    const cfg = IMPACT[fundSelect.value] || IMPACT.offering;
+    if (!Number.isFinite(amt) || amt <= 0) { impactLine.textContent = ''; return; }
+    const count = Math.max(1, Math.floor(amt / cfg.unitCost));
+    impactLine.textContent = `Your gift can help fund ~${count} ${cfg.label}.`;
+  }
   function updateGiveState(){ giveBtn.disabled = isNaN(amountValid()); }
+
+  // Dedication toggle
+  if (dedicateToggle) {
+    dedicateToggle.addEventListener('change', ()=> {
+      dedicateWrap.classList.toggle('hidden', !dedicateToggle.checked);
+    });
+  }
 
   // chips
   function clearChips(){ chips.forEach(b=>b.classList.remove('chip--on')); }
-  chips.forEach(btn => btn.addEventListener('click', () => { amountInput.value = btn.dataset.amount; clearChips(); btn.classList.add('chip--on'); updateGiveState(); updateFeePreview(); updateSummary(); amountInput.focus({preventScroll:true}); }));
+  chips.forEach(btn => btn.addEventListener('click', () => {
+    amountInput.value = btn.dataset.amount;
+    clearChips(); btn.classList.add('chip--on');
+    updateGiveState(); updateFeePreview(); updateSummary(); updateImpact();
+    amountInput.focus({preventScroll:true});
+  }));
 
-  amountInput.addEventListener('input', () => { clearChips(); updateGiveState(); updateFeePreview(); updateSummary(); });
-  coverFees.addEventListener('change', () => { updateFeePreview(); updateSummary(); });
-  fundSelect.addEventListener('change', () => { updateFundDesc(); updateSummary(); });
+  amountInput.addEventListener('input', () => { clearChips(); updateGiveState(); updateFeePreview(); updateSummary(); updateImpact(); });
+  coverFees.addEventListener('change', () => { updateFeePreview(); updateSummary(); updateImpact(); });
+  fundSelect.addEventListener('change', () => { updateFundDesc(); updateSummary(); updateImpact(); });
 
-  updateFundDesc(); updateGiveState(); updateFeePreview(); updateSummary();
+  // Init UI
+  updateFundDesc(); updateGiveState(); updateFeePreview(); updateSummary(); updateImpact();
 
   // sheet helpers
   const lockScroll = on => { d.documentElement.classList.toggle('overflow-hidden', on); d.body.classList.toggle('overflow-hidden', on); };
   const openSheet = () => { sheet.classList.remove('hidden'); lockScroll(true); };
   const closeSheet = () => { sheet.classList.add('hidden'); lockScroll(false); };
 
-  // Square
+  // Share
+  function showShare() {
+    if (!shareBtn) return;
+    shareBtn.classList.remove('hidden');
+    shareBtn.onclick = async () => {
+      try {
+        if (navigator.share) await navigator.share({
+          title: 'Hope of Life — Give',
+          text: 'Join me in supporting Hope of Life International Church.',
+          url: location.origin
+        });
+      } catch {}
+    };
+  }
+
+  // Confetti
+  function celebrate() {
+    const root = document.body;
+    const N = 80;
+    for (let i = 0; i < N; i++) {
+      const s = document.createElement('i');
+      s.style.position = 'fixed';
+      s.style.left = Math.random() * 100 + 'vw';
+      s.style.top = '-2vh';
+      s.style.width = s.style.height = (6 + Math.random()*6) + 'px';
+      s.style.background = ['#cc0000','#111','#666','#e5e7eb'][i % 4];
+      s.style.opacity = '0.9';
+      s.style.transform = `rotate(${Math.random()*360}deg)`;
+      s.style.borderRadius = Math.random() < 0.5 ? '2px' : '50%';
+      s.style.pointerEvents = 'none';
+      s.style.zIndex = 9999;
+      s.animate(
+        [
+          { transform: s.style.transform + ' translateY(0) rotate(0deg)', opacity: 0.9 },
+          { transform: `translate(${(Math.random()*2-1)*40}vw, 100vh) rotate(${360+Math.random()*360}deg)`, opacity: 0.9 }
+        ],
+        { duration: 1800 + Math.random()*1000, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' }
+      ).finished.then(() => s.remove());
+      root.appendChild(s);
+    }
+  }
+
+  // --- Square setup ---
   let payments, card, paymentRequest, walletsReady = false;
   const cfg = window.SQUARE_CONFIG || {};
   const apiBase = cfg.apiBaseUrl || '';
 
-  function idKey(){ const a = crypto.getRandomValues(new Uint8Array(16)); return Array.from(a,b=>('0'+b.toString(16)).slice(-2)).join(''); }
+  function idKey(){
+    const a = crypto.getRandomValues(new Uint8Array(16));
+    return Array.from(a,b=>('0'+b.toString(16)).slice(-2)).join('');
+  }
 
   async function postPaymentToken(token) {
     const cents = Math.round(buyerTotal() * 100);
+
+    // Build note incl. dedication if provided
+    const parts = [];
+    const fundText = fundSelect.options[fundSelect.selectedIndex]?.text || fundSelect.value;
+    parts.push(`Fund: ${fundText}`);
+    if (dedicateToggle?.checked) {
+      const dn = (dedicateName?.value || '').trim();
+      const dt = (dedicateNote?.value || '').trim();
+      if (dn) parts.push(`Dedication: ${dn}`);
+      if (dt) parts.push(`Note: ${dt}`);
+    }
+    const note = parts.join(' | ');
+
     const res = await fetch(`${apiBase}/api/pay`, {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ token, amount: cents, fund: fundSelect.value, name: nameInput.value || null, email: emailInput.value || null, idempotencyKey: idKey() })
+      body: JSON.stringify({
+        token,
+        amount: cents,
+        fund: fundSelect.value,
+        name: nameInput.value || null,
+        email: emailInput.value || null,
+        idempotencyKey: idKey(),
+        note
+      })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data?.error || 'Payment failed');
@@ -93,7 +217,7 @@
     // Card
     if (!card) { card = await payments.card(); await card.attach('#card-container'); }
 
-    // Shared PaymentRequest for wallets
+    // Shared PaymentRequest
     paymentRequest = await payments.paymentRequest({
       countryCode:'US', currencyCode:'USD',
       total:{ amount:(totalCents/100).toFixed(2), label:'Donation' },
@@ -101,25 +225,32 @@
     });
 
     if (!walletsReady) {
-      // APPLE PAY (no attach; you click your own element, then tokenize)
+      // APPLE PAY: render real button & call tokenize()
       try {
         const applePay = await payments.applePay(paymentRequest);
-        // Show btn only on Apple devices with Wallet set up
         if (window.ApplePaySession && window.ApplePaySession.canMakePayments()) {
+          appleBtnWrap.innerHTML = `
+            <button id="apple-pay-real" type="button"
+              class="w-full rounded-full bg-black text-white font-semibold py-3 px-4
+                     flex items-center justify-center gap-2 hover:opacity-90">
+              <span style="font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;"></span>
+              <span>Pay</span>
+            </button>
+          `;
           appleBtnWrap.classList.remove('hidden');
-          appleBtnWrap.onclick = async (e) => {
+          d.getElementById('apple-pay-real').onclick = async (e) => {
             e.preventDefault();
             try {
               payStatus.textContent = 'Authorizing Apple Pay...';
-              const r = await applePay.tokenize();                // ← open Apple sheet
-              if (r.status === 'OK') { await postPaymentToken(r.token); payStatus.textContent = 'Thank you! Payment approved (Apple Pay).'; setTimeout(closeSheet, 900); }
+              const r = await applePay.tokenize();
+              if (r.status === 'OK') { await postPaymentToken(r.token); celebrate(); showShare(); payStatus.textContent = 'Thank you! Payment approved (Apple Pay).'; setTimeout(closeSheet, 900); }
               else { payStatus.textContent = 'Apple Pay canceled or unavailable.'; }
             } catch (err) { payStatus.textContent = err.message || 'Apple Pay failed.'; }
           };
         }
-      } catch { /* not eligible / domain not verified */ }
+      } catch {}
 
-      // GOOGLE PAY (attach renders the button; you call tokenize on click)
+      // GOOGLE PAY: attach then tokenize on click
       try {
         const googlePay = await payments.googlePay(paymentRequest);
         await googlePay.attach('#google-pay-btn');
@@ -128,23 +259,23 @@
           e.preventDefault();
           try {
             payStatus.textContent = 'Authorizing Google Pay...';
-            const r = await googlePay.tokenize();                // ← open GPay sheet
-            if (r.status === 'OK') { await postPaymentToken(r.token); payStatus.textContent = 'Thank you! Payment approved (Google Pay).'; setTimeout(closeSheet, 900); }
+            const r = await googlePay.tokenize();
+            if (r.status === 'OK') { await postPaymentToken(r.token); celebrate(); showShare(); payStatus.textContent = 'Thank you! Payment approved (Google Pay).'; setTimeout(closeSheet, 900); }
             else { payStatus.textContent = 'Google Pay canceled or unavailable.'; }
           } catch (err) { payStatus.textContent = err.message || 'Google Pay failed.'; }
         };
-      } catch { /* not eligible on this device */ }
+      } catch {}
 
       // CASH APP PAY
       try {
-        const cashAppPay = await payments.cashAppPay(paymentRequest, { redirectURL: window.location.origin, referenceId: 'donation-' + Date.now() });
-        await cashAppPay.attach('#cash-app-pay-btn');
+        const cap = await payments.cashAppPay(paymentRequest, { redirectURL: window.location.origin, referenceId: 'donation-' + Date.now() });
+        await cap.attach('#cash-app-pay-btn');
         cashBtnWrap.classList.remove('hidden');
-        cashAppPay.addEventListener('ontokenization', async (evt) => {
+        cap.addEventListener('ontokenization', async (evt) => {
           const { tokenResult, error } = evt.detail || {};
           if (error) { payStatus.textContent = error.message || 'Cash App Pay failed.'; return; }
           if (tokenResult?.status === 'OK') {
-            try { await postPaymentToken(tokenResult.token); payStatus.textContent = 'Thank you! Payment approved (Cash App Pay).'; setTimeout(closeSheet, 900); }
+            try { await postPaymentToken(tokenResult.token); celebrate(); showShare(); payStatus.textContent = 'Thank you! Payment approved (Cash App Pay).'; setTimeout(closeSheet, 900); }
             catch (err) { payStatus.textContent = err.message || 'Payment failed.'; }
           }
         });
@@ -160,7 +291,7 @@
           try {
             payStatus.textContent = 'Authorizing Afterpay...';
             const r = await apcp.tokenize();
-            if (r.status === 'OK') { await postPaymentToken(r.token); payStatus.textContent = 'Thank you! Payment approved (Afterpay).'; setTimeout(closeSheet, 900); }
+            if (r.status === 'OK') { await postPaymentToken(r.token); celebrate(); showShare(); payStatus.textContent = 'Thank you! Payment approved (Afterpay).'; setTimeout(closeSheet, 900); }
             else { payStatus.textContent = 'Afterpay canceled or unavailable.'; }
           } catch (err) { payStatus.textContent = err.message || 'Afterpay failed.'; }
         };
@@ -178,7 +309,7 @@
           try {
             payStatus.textContent = 'Opening bank selection...';
             const r = await ach.tokenize({ accountHolderName: (nameInput.value || 'Donor').trim(), intent: 'CHARGE', amount: buyerTotal().toFixed(2), currency:'USD' });
-            if (r.status === 'OK') { await postPaymentToken(r.token); payStatus.textContent = 'Thank you! Payment approved (ACH).'; setTimeout(closeSheet, 900); }
+            if (r.status === 'OK') { await postPaymentToken(r.token); celebrate(); showShare(); payStatus.textContent = 'Thank you! Payment approved (ACH).'; setTimeout(closeSheet, 900); }
             else { payStatus.textContent = 'ACH canceled or unavailable.'; }
           } catch (err) { payStatus.textContent = err.message || 'ACH failed.'; }
         };
@@ -189,7 +320,7 @@
     }
   }
 
-  // open sheet
+  // Open sheet
   const confirmBtnState = on => { confirmPayBtn.disabled = !on; };
   giveBtn.addEventListener('click', async () => {
     const a = amountValid(); if (isNaN(a)) return;
@@ -202,27 +333,31 @@
     catch(e){ payStatus.textContent = e.message || 'Failed to initialize payment.'; console.error(e); }
   });
 
-  // close sheet
+  // Close sheet
   backdrop.addEventListener('click', closeSheet);
   closeSheetBtn.addEventListener('click', closeSheet);
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
 
-  // card confirm
+  // Card confirm
   confirmPayBtn.addEventListener('click', async () => {
-    if (!confirmPayBtn || !window.Square) return;
     confirmBtnState(false);
     payStatus.textContent = 'Tokenizing card...';
     try {
-      const tok = await (await window.Square.payments(cfg.appId, cfg.locationId).card()).tokenize();
+      const tok = await card.tokenize();
       if (tok.status !== 'OK') throw new Error('Card details error. Please check and try again.');
       await postPaymentToken(tok.token);
+      celebrate(); showShare();
       payStatus.textContent = 'Thank you! Payment approved.';
       setTimeout(()=>{ closeSheet(); payStatus.textContent=''; }, 900);
-    } catch (err) { payStatus.textContent = err.message || 'Payment failed. Please try again.'; console.error(err); }
-    finally { confirmBtnState(true); }
+    } catch (err) {
+      payStatus.textContent = err.message || 'Payment failed. Please try again.';
+      console.error(err);
+    } finally {
+      confirmBtnState(true);
+    }
   });
 
-  // keep totals in sync if user edits after opening
+  // Keep totals in sync if user edits after opening
   ['input','change'].forEach(ev=>{
     amountInput.addEventListener(ev, ()=>{
       const t = buyerTotal();
