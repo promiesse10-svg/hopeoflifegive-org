@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#cc0000" />
+  <title>Hope of Life International Church — Give</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: { 900:"#0a0a0a",700:"#1a1a1a",600:"#2a2a2a",400:"#6b7280",200:"#e5e7eb" },
+            paper: "#f7f8fa",
+            brand: { DEFAULT:"#cc0000", 600:"#b30000" }
+          },
+          fontFamily: {
+            system: ['-apple-system','BlinkMacSystemFont','SF Pro Text','SF Pro Display','Inter','Segoe UI','Roboto','Helvetica Neue','Arial','system-ui','sans-serif'],
+            rounded: ['ui-rounded','SF Pro Rounded','SF Rounded','SF Pro Display Rounded','Arial Rounded MT Bold','Nunito','Quicksand','system-ui','-apple-system','BlinkMacSystemFont','Segoe UI','Roboto','Helvetica Neue','Arial','sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: theme('fontFamily.system');
+      background:
+        radial-gradient(1200px 600px at 50% -10%, rgba(204,0,0,0.08), transparent 60%),
+        radial-gradient(900px 500px at 100% 0%, rgba(0,0,0,0.04), transparent 50%),
+        theme('colors.paper');
+      color: theme('colors.ink.900');
+    }
+    .chip--on { background:#0a0a0a; color:#fff; border-color:#0a0a0a; box-shadow:0 0 0 4px rgba(10,10,10,0.08); }
+    .glass { background:rgba(255,255,255,0.7); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.6); }
+  </style>
+</head>
+
+<body class="min-h-screen">
+  <main class="mx-auto max-w-xl w-full px-4 py-10 md:px-8 md:py-16" role="main">
+    <!-- Header -->
+    <header class="text-center">
+      <div class="flex justify-center mb-5">
+        <img src="/images/logo.png" alt="Hope of Life International Church logo" class="h-24 w-auto object-contain" loading="lazy" />
+      </div>
+      <h1 class="font-rounded text-[clamp(28px,4.2vw,40px)] font-semibold tracking-tight">Hope of Life International Church</h1>
+      <p class="text-ink-400 text-sm md:text-[15px] mt-3 italic max-w-prose mx-auto leading-relaxed">
+        “A new commandment I give unto you, That ye love one another; as I have loved you,
+        that ye also love one another. By this shall all men know that ye are my disciples,
+        if ye have love one to another.” — John 13:34–35
+      </p>
+      <div class="h-px w-16 mx-auto mt-6 bg-ink-200"></div>
+    </header>
+
+    <!-- Card / Form -->
+    <section class="mt-8 rounded-2xl glass shadow p-6 md:p-8">
+      <form id="donationForm" class="space-y-7" novalidate>
+        <!-- Amount -->
+        <div>
+          <label class="font-rounded block text-sm font-medium text-ink-600 mb-2">Amount</label>
+          <div class="flex flex-wrap gap-2" role="group" aria-label="Preset amounts">
+            <button type="button" class="chip px-3 py-1.5 rounded-full border border-ink-200 hover:bg-white text-sm" data-amount="10">$10</button>
+            <button type="button" class="chip px-3 py-1.5 rounded-full border border-ink-200 hover:bg-white text-sm" data-amount="20">$20</button>
+            <button type="button" class="chip px-3 py-1.5 rounded-full border border-ink-200 hover:bg-white text-sm" data-amount="50">$50</button>
+            <button type="button" class="chip px-3 py-1.5 rounded-full border border-ink-200 hover:bg-white text-sm" data-amount="100">$100</button>
+            <button type="button" class="chip px-3 py-1.5 rounded-full border border-ink-200 hover:bg-white text-sm" data-amount="250">$250</button>
+          </div>
+
+          <div class="mt-3">
+            <label for="amount" class="sr-only">Custom amount</label>
+            <div class="relative">
+              <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-ink-400">$</span>
+              <input id="amount" name="amount" inputmode="decimal" autocomplete="off" placeholder="Enter amount"
+                     class="pl-7 pr-3 py-3 w-full rounded-xl border border-ink-200 bg-white text-base focus:border-ink-900 focus:ring-2 focus:ring-ink-900/10"
+                     aria-describedby="amountHelp amountError" />
+            </div>
+            <div id="amountHelp" class="text-xs text-ink-400 mt-1">Minimum $1.00</div>
+            <div id="amountError" class="text-xs text-brand mt-1 hidden">Enter a valid amount (at least $1.00).</div>
+          </div>
+        </div>
+
+        <!-- Fund select -->
+        <div>
+          <label for="fund" class="font-rounded block text-sm font-medium text-ink-600">Fund</label>
+          <select id="fund" name="fund" class="mt-1 block w-full rounded-xl border border-ink-200 bg-white text-base focus:ring-ink-900/10 focus:border-ink-900">
+            <option value="tithe">Tithe</option>
+            <option value="offering" selected>Offering</option>
+            <option value="missions">Missions</option>
+            <option value="building-fund">Building Fund</option>
+          </select>
+          <p id="fundDesc" class="text-xs text-ink-400 mt-2"></p>
+        </div>
+
+        <!-- Cover fees -->
+        <div class="flex items-start gap-2">
+          <input id="coverFees" type="checkbox" class="mt-1 accent-brand" />
+          <label for="coverFees" class="text-sm">
+            Cover processing fees so the church receives your full gift.
+            <span id="feePreview" class="text-xs text-ink-400 ml-1">(adds ~$0.00)</span>
+          </label>
+        </div>
+
+        <!-- Goal (optional, hidden initially) -->
+        <section id="goalWrap" class="hidden">
+          <div class="flex items-center justify-between text-xs mb-1 text-ink-400">
+            <span id="goalLabel">Progress</span>
+            <span id="goalNums">$0 / $0</span>
+          </div>
+          <div class="w-full bg-ink-200 rounded-full h-2 overflow-hidden">
+            <div id="goalBar" class="h-2 rounded-full bg-ink-900" style="width:0%"></div>
+          </div>
+        </section>
+
+        <!-- Contact (optional) -->
+        <div class="grid md:grid-cols-2 gap-3">
+          <div>
+            <label for="name" class="font-rounded block text-sm font-medium text-ink-600">Your Name (optional)</label>
+            <input id="name" name="name" autocomplete="name"
+                   class="mt-1 block w-full rounded-xl border border-ink-200 bg-white text-base focus:border-ink-900 focus:ring-2 focus:ring-ink-900/10" />
+          </div>
+          <div>
+            <label for="email" class="font-rounded block text-sm font-medium text-ink-600">Email (optional)</label>
+            <input id="email" name="email" type="email" autocomplete="email"
+                   class="mt-1 block w-full rounded-xl border border-ink-200 bg-white text-base focus:border-ink-900 focus:ring-2 focus:ring-ink-900/10" />
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="pt-2 space-y-2">
+          <button id="giveBtn" type="button" disabled
+                  class="bg-brand hover:bg-brand-600 text-white font-semibold py-3 px-6 rounded-full w-full focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/20 disabled:opacity-50 disabled:cursor-not-allowed">
+            Give Now
+          </button>
+          <div id="summary" class="text-xs text-ink-400 text-center" aria-live="polite"></div>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <!-- Payment Sheet (modal) -->
+  <div id="paySheet" class="fixed inset-0 z-50 hidden">
+    <div id="sheetBackdrop" class="absolute inset-0 bg-black/50"></div>
+    <div class="absolute inset-x-0 bottom-0 md:inset-0 md:flex md:items-center md:justify-center">
+      <section class="w-full md:max-w-md bg-white rounded-t-2xl md:rounded-2xl shadow-xl p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-rounded text-lg">Secure Payment</h2>
+          <button id="closeSheet" class="text-ink-400 hover:text-ink-900" aria-label="Close">&times;</button>
+        </div>
+
+        <!-- Wallets (conditionally visible) -->
+        <div id="wallets" class="space-y-3 mb-3">
+          <div id="apple-pay-btn" class="hidden"></div>
+          <div id="google-pay-btn" class="hidden"></div>
+          <div id="cash-app-pay-btn" class="hidden"></div>
+          <div id="wallet-divider" class="hidden text-center text-xs text-ink-400">or pay with card</div>
+        </div>
+
+        <!-- Square Card element -->
+        <div id="card-container" class="rounded-xl border border-ink-200 bg-white p-4"></div>
+
+        <button id="confirmPayBtn" disabled
+                class="mt-4 bg-brand hover:bg-brand-600 text-white font-semibold py-3 px-6 rounded-full w-full disabled:opacity-50">
+          Pay <span id="confirmTotal"></span>
+        </button>
+        <p id="payStatus" class="text-xs text-ink-400 text-center mt-2"></p>
+      </section>
+    </div>
+  </div>
+
+  <!-- Square SDK + config + app -->
+  <script src="https://web.squarecdn.com/v1/square.js"></script>
+  <script src="/config.js"></script>
+  <script src="/payments.js" defer></script>
+</body>
+</html>
