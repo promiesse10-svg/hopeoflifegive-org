@@ -20,6 +20,25 @@
           fontFamily: {
             system: ['-apple-system','BlinkMacSystemFont','SF Pro Text','SF Pro Display','Inter','Segoe UI','Roboto','Helvetica Neue','Arial','system-ui','sans-serif'],
             rounded: ['ui-rounded','SF Pro Rounded','SF Rounded','SF Pro Display Rounded','Arial Rounded MT Bold','Nunito','Quicksand','system-ui','-apple-system','BlinkMacSystemFont','Segoe UI','Roboto','Helvetica Neue','Arial','sans-serif']
+          },
+          keyframes: {
+            slideUp: {
+              '0%': { transform: 'translateY(100%)', opacity: '0' },
+              '100%': { transform: 'translateY(0)', opacity: '1' }
+            },
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' }
+            },
+            pulse: {
+              '0%, 100%': { transform: 'scale(1)' },
+              '50%': { transform: 'scale(1.05)' }
+            }
+          },
+          animation: {
+            slideUp: 'slideUp 0.3s ease-out forwards',
+            fadeIn: 'fadeIn 0.3s ease-out forwards',
+            pulse: 'pulse 0.5s ease-in-out'
           }
         }
       }
@@ -36,6 +55,18 @@
     }
     .chip--on { background:#0a0a0a; color:#fff; border-color:#0a0a0a; box-shadow:0 0 0 4px rgba(10,10,10,0.08); }
     .glass { background:rgba(255,255,255,0.7); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.6); }
+    .spinner {
+      display: inline-block;
+      width: 1.5rem;
+      height: 1.5rem;
+      border: 2px solid #fff;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 
@@ -60,11 +91,11 @@
         <div>
           <label class="font-rounded block text-sm font-medium text-ink-600 mb-2">Amount</label>
           <div class="flex flex-wrap gap-2" role="group" aria-label="Preset amounts">
-            <button type="button" class="chip px-3 py-1.5 rounded-full border border-ink-200 hover:bg-white text-sm" data-amount="10">$10</button>
-            <button type="button" class="chip px-3 py-1.5 rounded-full border border-ink-200 hover:bg-white text-sm" data-amount="20">$20</button>
-            <button type="button" class="chip px-3 py-1.5 rounded-full border border-ink-200 hover:bg-white text-sm" data-amount="50">$50</button>
-            <button type="button" class="chip px-3 py-1.5 rounded-full border border-ink-200 hover:bg-white text-sm" data-amount="100">$100</button>
-            <button type="button" class="chip px-3 py-1.5 rounded-full border border-ink-200 hover:bg-white text-sm" data-amount="250">$250</button>
+            <button type="button" class="chip px-3 py-1.5 rounded-full border border-ink-200 hover:bg-white text-sm hover:animation-pulse" data-amount="10">$10</button>
+            <button type="button" class="chip px-3 py-1.5 rounded-full border border-ink-200 hover:bg-white text-sm hover:animation-pulse" data-amount="20">$20</button>
+            <button type="button" class="chip px-3 py-1.5 rounded-full border border-ink-200 hover:bg-white text-sm hover:animation-pulse" data-amount="50">$50</button>
+            <button type="button" class="chip px-3 py-1.5 rounded-full border border-ink-200 hover:bg-white text-sm hover:animation-pulse" data-amount="100">$100</button>
+            <button type="button" class="chip px-3 py-1.5 rounded-full border border-ink-200 hover:bg-white text-sm hover:animation-pulse" data-amount="250">$250</button>
           </div>
 
           <div class="mt-3">
@@ -129,7 +160,7 @@
         <!-- Submit -->
         <div class="pt-2 space-y-2">
           <button id="giveBtn" type="button" disabled
-                  class="bg-brand hover:bg-brand-600 text-white font-semibold py-3 px-6 rounded-full w-full focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                  class="bg-brand hover:bg-brand-600 text-white font-semibold py-3 px-6 rounded-full w-full focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/20 disabled:opacity-50 disabled:cursor-not-allowed hover:animation-pulse">
             Give Now
           </button>
           <div id="summary" class="text-xs text-ink-400 text-center" aria-live="polite"></div>
@@ -139,31 +170,36 @@
   </main>
 
   <!-- Payment Sheet (modal) -->
-  <div id="paySheet" class="fixed inset-0 z-50 hidden">
-    <div id="sheetBackdrop" class="absolute inset-0 bg-black/50"></div>
+  <div id="paySheet" class="fixed inset-0 z-50 hidden" role="dialog" aria-labelledby="paySheetTitle" aria-modal="true">
+    <div id="sheetBackdrop" class="absolute inset-0 bg-black/50 animation-fadeIn"></div>
     <div class="absolute inset-x-0 bottom-0 md:inset-0 md:flex md:items-center md:justify-center">
-      <section class="w-full md:max-w-md bg-white rounded-t-2xl md:rounded-2xl shadow-xl p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="font-rounded text-lg">Secure Payment</h2>
-          <button id="closeSheet" class="text-ink-400 hover:text-ink-900" aria-label="Close">&times;</button>
+      <section class="w-full md:max-w-md bg-gradient-to-br from-white to-paper rounded-t-2xl md:rounded-2xl shadow-2xl p-6 md:p-8 animation-slideUp" style="border: 1px solid rgba(255,255,255,0.6); backdrop-filter: blur(12px);">
+        <div class="flex items-center justify-between mb-6">
+          <h2 id="paySheetTitle" class="font-rounded text-xl font-semibold text-ink-900">Secure Payment</h2>
+          <button id="closeSheet" class="text-ink-400 hover:text-ink-900 text-2xl font-bold" aria-label="Close payment sheet">&times;</button>
         </div>
 
         <!-- Wallets via Stripe Payment Request Button -->
-        <div id="wallets" class="space-y-3 mb-3">
+        <div id="wallets" class="space-y-4 mb-4">
           <div id="payment-request-button" class="hidden"></div>
-          <!-- Divider -->
-          <div id="wallet-divider" class="hidden text-center text-xs text-ink-400">or pay with card</div>
+          <div id="wallet-divider" class="hidden text-center text-sm text-ink-400 relative">
+            <span class="px-2 bg-white">or pay with card</span>
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full h-px bg-ink-200"></div>
+            </div>
+          </div>
         </div>
 
         <!-- Stripe Payment Element (cards, Link, bank, etc.) -->
-        <div id="payment-element" class="rounded-xl border border-ink-200 bg-white p-4"></div>
+        <div id="payment-element" class="rounded-xl border border-ink-200 bg-white p-4 shadow-sm"></div>
 
         <button id="confirmPayBtn" disabled
-                class="mt-4 bg-brand hover:bg-brand-600 text-white font-semibold py-3 px-6 rounded-full w-full disabled:opacity-50">
-          Pay <span id="confirmTotal"></span>
+                class="mt-6 bg-brand hover:bg-brand-600 text-white font-semibold py-3 px-6 rounded-full w-full disabled:opacity-50 flex items-center justify-center gap-2 hover:animation-pulse focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/20">
+          <span id="confirmPayText">Pay <span id="confirmTotal"></span></span>
+          <span id="spinner" class="hidden spinner"></span>
         </button>
-        <p id="payStatus" class="text-xs text-ink-400 text-center mt-2"></p>
-        <button id="shareBtn" class="hidden mt-3 w-full rounded-full border border-ink-200 px-4 py-2 text-sm">
+        <p id="payStatus" class="text-sm text-ink-400 text-center mt-3" aria-live="polite"></p>
+        <button id="shareBtn" class="hidden mt-4 w-full rounded-full border border-ink-200 px-4 py-2 text-sm text-ink-900 hover:bg-ink-200/50 hover:animation-pulse">
           Share this page
         </button>
       </section>
@@ -173,7 +209,6 @@
   <!-- Stripe SDK + config + app -->
   <script src="https://js.stripe.com/v3/"></script>
   <script src="/config.js"></script>
-  <!-- IMPORTANT: /payments.js must be the Stripe version that mounts Payment Element + PR Button -->
   <script src="/payments.js" defer></script>
 </body>
 </html>
